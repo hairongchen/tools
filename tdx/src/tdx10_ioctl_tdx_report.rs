@@ -52,17 +52,19 @@ fn get_tdx10_report(device_node: File, report_data: String)-> String {
     return format!("{:?}", &td_report);
 }
 
+fn get_tdx15_report(device_node: File, report_data: String)-> String {
+
+}
+
+
 fn get_tdx_report(device: String, report_data: String) -> String {
 
-let file = match File::options().read(true).write(true).open(&device) {
-    Err(err) => panic!("couldn't open {}: {:?}", device, err),
-    Ok(file) => file,
-};
+    let file = match File::options().read(true).write(true).open(&device) {
+        Err(err) => panic!("couldn't open {}: {:?}", device, err),
+        Ok(file) => file,
+    };
 
-
-    let report = get_tdx10_report(file, report_data);
-
-    return report;
+    get_tdx10_report(file, report_data)
 }
 
 fn main() {
