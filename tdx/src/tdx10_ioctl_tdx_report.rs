@@ -30,9 +30,9 @@ impl std::fmt::Display for tdx_report_req {
 fn get_tdx10_report(device_node: File, report_data: String)-> String {
     let sub_type: u8 = 0;
     let report_data_bytes = report_data.as_bytes();
-    let mut report_data_array: [u8; 64] = [0; 64];
-    report_data_array[0..63].copy_from_slice(&report_data_bytes[0..63]);
-    let td_report: [u8; 1024] = [0; 1024];
+    let mut report_data_array: [u8; REPORT_DATA_LEN as usize] = [0; REPORT_DATA_LEN as usize];
+    report_data_array[0..((REPORT_DATA_LEN as usize) -1)].copy_from_slice(&report_data_bytes[0..((REPORT_DATA_LEN as usize) -1)]);
+    let td_report: [u8; TDX_REPORT_LEN as usize] = [0; TDX_REPORT_LEN as usize];
 
     let request  = tdx_report_req {
         subtype: sub_type,
@@ -51,11 +51,6 @@ fn get_tdx10_report(device_node: File, report_data: String)-> String {
 
     return format!("{:?}", &td_report);
 }
-
-fn get_tdx15_report(device_node: File, report_data: String)-> String {
-
-}
-
 
 fn get_tdx_report(device: String, report_data: String) -> String {
 
