@@ -49,7 +49,7 @@ fn get_tdx10_report(device_node: File, report_data: String)-> String {
         Ok(_r) => println!("successfully get TDX report"),
     };
 
-    return format!("{:?}", &td_report);
+    format!("{:?}", &td_report)
 }
 
 fn get_tdx_report(device: String, report_data: String) -> String {
