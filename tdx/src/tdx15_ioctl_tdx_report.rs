@@ -12,6 +12,7 @@ const TDX_REPORT_LEN: u32 = 1024;
 #[allow(dead_code)]
 #[allow(non_camel_case_types)]
 #[repr(C)]
+// https://github.com/intel-innersource/os.linux.cloud.mvp.kernel-dev/blob/css-tdx-mvp-kernel-6.2/include/uapi/linux/tdx-guest.h#L40
 pub struct tdx_report_req {
     reportdata:         [u8; REPORT_DATA_LEN as usize],
     tdreport:           [u8; TDX_REPORT_LEN as usize],
@@ -21,9 +22,9 @@ fn get_tdx15_report(device_node: File, report_data: String)-> String {
     let mut request: [u8; (REPORT_DATA_LEN + TDX_REPORT_LEN) as usize] = [0; (REPORT_DATA_LEN + TDX_REPORT_LEN) as usize];
     request[0..((REPORT_DATA_LEN as usize) -1)].copy_from_slice(&report_data.as_bytes()[0..((REPORT_DATA_LEN as usize) -1)]);
 
-    ioctl_readwrite!(get_quote_ioctl, b'T', 1, tdx_report_req);
+    ioctl_readwrite!(get_report15_ioctl, b'T', 1, tdx_report_req);
 
-    let _res = match unsafe { get_quote_ioctl(device_node.as_raw_fd(), ptr::addr_of!(request) as *mut tdx_report_req) }{
+    let _res = match unsafe { get_report15_ioctl(device_node.as_raw_fd(), ptr::addr_of!(request) as *mut tdx_report_req) }{
         Err(e) => panic!("Fail to get report: {:?}", e),
         Ok(_r) => println!("successfully get TDX report"),
     };
