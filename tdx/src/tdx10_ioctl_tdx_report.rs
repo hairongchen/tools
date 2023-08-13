@@ -71,10 +71,11 @@ fn get_tdx_report(device: String, report_data: String) -> String {
 #[allow(non_camel_case_types)]
 #[repr(C)]
 // https://github.com/intel/SGXDataCenterAttestationPrimitives/blob/master/QuoteGeneration/quote_wrapper/qgs_msg_lib/inc/qgs_msg_lib.h#L73C16-L73C34
+#[derive(Debug)]
 pub struct qgs_msg_header{
     major_version:      u16,
     minor_version:      u16,
-    r#type:               u32,
+    msg_type:               u32,
     size:               u32,    // size of the whole message, include this header, in byte
     error_code:         u32,    // used in response only
 }
@@ -95,7 +96,7 @@ fn generate_qgs_quote_msg(report: [u8; TDX_REPORT_LEN as usize]) -> qgs_msg_get_
     let qgs_header = qgs_msg_header{
         major_version:      1,
         minor_version:      0,
-        r#type:               0,
+        msg_type:               0,
         size:               16+8+TDX_REPORT_LEN,   // header + report_size and id_list_size + TDX_REPORT_LEN
         error_code:         0,
     };
@@ -207,21 +208,27 @@ fn get_tdx10_quote(device_node: File, report_data: String)-> String {
     /*
     let major_version = qgs_msg.header.major_version;
     let minor_version = qgs_msg.header.minor_version;
-    let r#type = qgs_msg.header.r#type;
+    let msg_type = qgs_msg.header.msg_type;
     let error_code = qgs_msg.header.error_code;
     */
 
     let out_len = quote_header.out_len;
-    let quote_size = unsafe { std::mem::transmute::<[u8; 4], u32>(quote_header.data_len_be_bytes) }.to_be();
-    //let status = quote_header.status;
+    let qgs_msg_resp_size = unsafe { std::mem::transmute::<[u8; 4], u32>(quote_header.data_len_be_bytes) }.to_be();
 
-    println!("quote size {}",quote_size);
+    let qgs_msg_resp = unsafe {
+        let raw_ptr = ptr::addr_of!(quote_header.data) as *mut qgs_msg_get_quote_resp;
+        raw_ptr.as_mut().unwrap() as &mut qgs_msg_get_quote_resp
+    };
 
-    if out_len - quote_size != 4 {
+    println!("qgs_msg_resp.header {:?}", qgs_msg_resp.header);
+    println!("qgs msg response size from tdx_quote_hdr: {}", qgs_msg_resp_size);
+    println!("qgs_msg_get_quote_resp.quote_size: {}", qgs_msg_resp.quote_size);
+
+    if out_len - qgs_msg_resp_size != 4 {
         panic!("TDX get quote: wrong quote size!");
     }
 
-    format!("{:?}", &quote_header.data[0..((quote_size-1) as usize)])
+    format!("{:?}", &qgs_msg_resp.id_quote[0..(qgs_msg_resp.quote_size as usize)])
 
 }
 
@@ -235,6 +242,7 @@ fn main() {
     };
 
     let tdx_quote = get_tdx10_quote(file, "1234567812345678123456781234567812345678123456781234567812345678".to_string());
-    println!("Back with quote string of size: {}", tdx_quote.len());
+    println!("Back with quote string of: {}", tdx_quote);
+    //println!("Back with quote string of size: {}", tdx_quote.len());
 
 }
