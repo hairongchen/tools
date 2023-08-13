@@ -4,6 +4,7 @@ use std::fs::File;
 use std::ptr;
 use std::result::Result::Ok;
 use std::mem::size_of_val;
+use std::mem;
 
 #[macro_use] extern crate nix;
 
@@ -79,6 +80,7 @@ pub struct qgs_msg_header{
 
 #[allow(dead_code)]
 #[allow(non_camel_case_types)]
+//#[derive(bytemuck::NoUninit, Clone, Copy)]
 #[repr(C)]
 // https://github.com/intel/SGXDataCenterAttestationPrimitives/blob/master/QuoteGeneration/quote_wrapper/qgs_msg_lib/inc/qgs_msg_lib.h#L81C15-L81C15
 pub struct qgs_msg_get_quote_req{
@@ -107,7 +109,7 @@ fn generate_qgs_quote_msg(report: String) -> qgs_msg_get_quote_req{
     };
 
     let td_report = report.as_bytes();
-    qgs_request.report_id_list[0..((REPORT_DATA_LEN as usize) -1)].copy_from_slice(&td_report[0..((REPORT_DATA_LEN as usize) -1)]);
+    qgs_request.report_id_list[0..((TDX_REPORT_LEN as usize) -1)].copy_from_slice(&td_report[0..((TDX_REPORT_LEN as usize) -1)]);
 
     return qgs_request;
 }
@@ -121,8 +123,8 @@ pub struct tdx_quote_hdr {
     status:     u64,            // Status code of Quote request, filled by VMM
     in_len:     u32,            // Length of TDREPORT, filled by TD
     out_len:    u32,            // Length of Quote, filled by VMM
-    data_len:   u32,
-    data:       u64,            // Actual Quote data or TDREPORT on input
+    data_len_be_bytes: [u8; 4],
+    data:       [u8;TDX_QUOTE_LEN as usize],            // Actual Quote data or TDREPORT on input
 }
 
 #[allow(dead_code)]
@@ -149,15 +151,20 @@ pub struct qgs_msg_get_quote_resp {
 fn get_tdx10_quote(device_node: File, report: String)-> String {
 
     let qgs_msg = generate_qgs_quote_msg(report);
-
-    let quote_header = tdx_quote_hdr{
+    let mut quote_header = tdx_quote_hdr{
         version:    1,
         status:     0,
         in_len:     (size_of_val(&qgs_msg)+4) as u32,
         out_len:    0,
-        data_len:   size_of_val(&qgs_msg),
-        data:       ptr::addr_of!(qgs_msg) as u64,
+        data_len_be_bytes: (1048 as u32).to_be_bytes(),
+        data:       [0;TDX_QUOTE_LEN as usize], //ptr::addr_of!(qgs_msg) as u64,
     };
+
+    let qgs_msg_bytes = unsafe {
+        let ptr = &qgs_msg as *const qgs_msg_get_quote_req as *const u8;
+        std::slice::from_raw_parts(ptr, mem::size_of::<qgs_msg_get_quote_req>())
+    };
+    quote_header.data[0..(16+8+TDX_REPORT_LEN-1) as usize].copy_from_slice(&qgs_msg_bytes[0..((16+8+TDX_REPORT_LEN-1) as usize)]);
 
     let request = tdx_quote_req{
         buf:    ptr::addr_of!(quote_header) as u64,
@@ -166,24 +173,11 @@ fn get_tdx10_quote(device_node: File, report: String)-> String {
 
     ioctl_read!(get_quote10_ioctl, b'T', 2, u64);
 
-    //request.len = 0;
-
     println!("1.0 get quote {:#0x}",request_code_read!(b'T', 0x02, 8) as u32);
     println!("1.0 get report {:#0x}",request_code_readwrite!(b'T', 0x01, 8) as u32);
     println!("quote_header.in_len = {}", quote_header.in_len);
+    println!("quote_header size = {}", size_of_val(&quote_header));
     println!("request.len = {}", request.len);
-    println!("request address: {:p}", &request);
-    println!("header address: {:p}", &quote_header);
-    //let qgs_msg_data = quote_header.data as tdx_quote_hdr;
-
-    let req = unsafe {
-        let raw_ptr = ptr::addr_of!(request) as *mut tdx_quote_req;
-        raw_ptr.as_mut().unwrap() as &mut tdx_quote_req
-    };
-    //let req = &mut * { ptr::addr_of!(request).cast_mut() as *mut tdx_quote_req};
-    println!("req raw ptr = {:#0x?}", req);
-    println!("request raw ptr = {:#0x?}", &request);
-    println!("req.len = {:}", req.len);
 
     let _res = match unsafe { get_quote10_ioctl(device_node.as_raw_fd(), ptr::addr_of!(request) as *mut u64) }{
         Err(e) => panic!("Fail to get quote: {:?}", e),
@@ -197,9 +191,11 @@ fn get_tdx10_quote(device_node: File, report: String)-> String {
     let error_code = qgs_msg.header.error_code;
     */
 
-    let quote_size = qgs_msg.id_list_size;
+    let quote_size = quote_header.out_len;
+    let status = quote_header.status;
 
-    format!("{:?}", quote_size)
+    format!("quote size {:0x?} status {:0x?} data {} error_code {} type {}",
+            quote_size, status, size_of_val(&quote_header.data), qgs_msg.header.error_code, qgs_msg.header.r#type)
 
 }
 
