@@ -198,6 +198,13 @@ fn get_tdx10_quote(device_node: File, report_data: String)-> String {
         len:    TDX_QUOTE_LEN as u64,
     };
 
+    println!("data_len_be_bytes be {:?}", quote_header.data_len_be_bytes);
+    println!("1024 to le {:?}", (1048 as u32).to_le_bytes());
+    println!("1024 to be {:?}", (1048 as u32).to_be_bytes());
+
+    let be_back = unsafe { std::mem::transmute::<[u8; 4], u32>(quote_header.data_len_be_bytes) }.to_be();
+    println!("data_len_be_bytes be {}", be_back);
+
     ioctl_read!(get_quote10_ioctl, b'T', 2, u64);
 
     println!("1.0 get quote {:#0x}",request_code_read!(b'T', 0x02, 8) as u32);
@@ -218,11 +225,17 @@ fn get_tdx10_quote(device_node: File, report_data: String)-> String {
     let error_code = qgs_msg.header.error_code;
     */
 
-    let quote_size = quote_header.out_len;
+    let out_len = quote_header.out_len;
+    let quote_size = unsafe { std::mem::transmute::<[u8; 4], u32>(quote_header.data_len_be_bytes) }.to_be();
     let status = quote_header.status;
+    println!("quote size = {}", quote_size);
+    println!("out data len = {}", out_len);
 
-    format!("quote size {:0x?} status {:0x?} data {} error_code {} type {}",
-            quote_size, status, size_of_val(&quote_header.data), qgs_msg.header.error_code, qgs_msg.header.r#type)
+    if out_len - quote_size != 4 {
+        panic!("TDX get quote: wrong quote size!");
+    }
+
+    format!("{:?}", &quote_header.data[0..((quote_size-1) as usize)])
 
 }
 
