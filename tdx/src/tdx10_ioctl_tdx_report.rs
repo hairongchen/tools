@@ -51,6 +51,7 @@ fn get_tdx10_report(device_node: File, report_data: String)-> String {
         Err(e) => panic!("Fail to get report: {:?}", e),
         Ok(_r) => println!("successfully get TDX report"),
     };
+    println!("get report size {}", td_report.len());
 
     format!("{:?}", &td_report)
 }
@@ -90,7 +91,7 @@ pub struct qgs_msg_get_quote_req{
     report_id_list:         [u8;TDX_REPORT_LEN as usize],    // report followed by id list
 }
 
-fn generate_qgs_quote_msg(report: String) -> qgs_msg_get_quote_req{
+fn generate_qgs_quote_msg(report: [u8; TDX_REPORT_LEN as usize]) -> qgs_msg_get_quote_req{
 
     let qgs_header = qgs_msg_header{
         major_version:      1,
@@ -108,7 +109,10 @@ fn generate_qgs_quote_msg(report: String) -> qgs_msg_get_quote_req{
         report_id_list:         [0;TDX_REPORT_LEN as usize],
     };
 
-    let td_report = report.as_bytes();
+    //let td_report = report.as_bytes();
+    let td_report = report;
+    println!("td_report size {}", td_report.len());
+
     qgs_request.report_id_list[0..((TDX_REPORT_LEN as usize) -1)].copy_from_slice(&td_report[0..((TDX_REPORT_LEN as usize) -1)]);
 
     return qgs_request;
@@ -148,9 +152,32 @@ pub struct qgs_msg_get_quote_resp {
     id_quote: [u8;TDX_QUOTE_LEN],   // selected id followed by quote
 }
 
-fn get_tdx10_quote(device_node: File, report: String)-> String {
+fn get_tdx10_quote(device_node: File, report_data: String)-> String {
 
-    let qgs_msg = generate_qgs_quote_msg(report);
+    let sub_type: u8 = 0;
+    let report_data_bytes = report_data.as_bytes();
+    let mut report_data_array: [u8; REPORT_DATA_LEN as usize] = [0; REPORT_DATA_LEN as usize];
+    report_data_array[0..((REPORT_DATA_LEN as usize) -1)].copy_from_slice(&report_data_bytes[0..((REPORT_DATA_LEN as usize) -1)]);
+    let td_report: [u8; TDX_REPORT_LEN as usize] = [0; TDX_REPORT_LEN as usize];
+
+    let request  = tdx_report_req {
+        subtype: sub_type,
+        reportdata: ptr::addr_of!(report_data_array) as u64,
+        rpd_len: REPORT_DATA_LEN,
+        tdreport: ptr::addr_of!(td_report) as u64,
+        tdr_len: TDX_REPORT_LEN,
+    };
+
+    ioctl_readwrite!(get_report10_ioctl, b'T', 1, u64);
+
+    let _res = match unsafe { get_report10_ioctl(device_node.as_raw_fd(), ptr::addr_of!(request) as *mut u64) }{
+        Err(e) => panic!("Fail to get report: {:?}", e),
+        Ok(_r) => println!("successfully get TDX report"),
+    };
+    println!("get report size now {}", td_report.len());
+
+
+    let qgs_msg = generate_qgs_quote_msg(td_report);
     let mut quote_header = tdx_quote_hdr{
         version:    1,
         status:     0,
@@ -201,13 +228,13 @@ fn get_tdx10_quote(device_node: File, report: String)-> String {
 
 fn main() {
     let tdx_report = get_tdx_report("/dev/tdx-guest".to_string(), "1234567812345678123456781234567812345678123456781234567812345678".to_string());
-    //println!("Back with report: {}", tdx_report);
+    println!("Back with report string of size: {}", tdx_report.len());
 
     let file = match File::options().read(true).write(true).open("/dev/tdx-guest") {
         Err(err) => panic!("couldn't open {}: {:?}", "/dev/tdx-guest", err),
         Ok(file) => file,
     };
 
-    let tdx_quote = get_tdx10_quote(file, tdx_report);
+    let tdx_quote = get_tdx10_quote(file, "1234567812345678123456781234567812345678123456781234567812345678".to_string());
     println!("Back with quote: {}", tdx_quote);
 }
