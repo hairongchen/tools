@@ -94,7 +94,7 @@ fn generate_qgs_quote_msg(report: String) -> qgs_msg_get_quote_req{
         major_version:      1,
         minor_version:      0,
         r#type:               0,
-        size:               16+8,   // header + report_size and id_list_size
+        size:               16+8+TDX_REPORT_LEN,   // header + report_size and id_list_size + TDX_REPORT_LEN
         error_code:         0,
     };
 
@@ -115,19 +115,21 @@ fn generate_qgs_quote_msg(report: String) -> qgs_msg_get_quote_req{
 #[allow(dead_code)]
 #[allow(non_camel_case_types)]
 #[repr(C)]
-// https://github.com/intel-innersource/os.linux.cloud.mvp.kernel-dev/blob/css-tdx-mvp-kernel-6.2/include/uapi/linux/tdx-guest.h#L76
+// https://github.com/intel-innersource/os.linux.cloud.mvp.kernel-dev/blob/mvp-tdx-5.19.17/arch/x86/include/uapi/asm/tdx.h#L86
 pub struct tdx_quote_hdr {
     version:    u64,            // Quote version, filled by TD
     status:     u64,            // Status code of Quote request, filled by VMM
     in_len:     u32,            // Length of TDREPORT, filled by TD
     out_len:    u32,            // Length of Quote, filled by VMM
+    data_len:   u32,
     data:       u64,            // Actual Quote data or TDREPORT on input
 }
 
 #[allow(dead_code)]
 #[allow(non_camel_case_types)]
+#[derive(Debug)]
 #[repr(C)]
-// https://github.com/intel-innersource/os.linux.cloud.mvp.kernel-dev/blob/css-tdx-mvp-kernel-6.2/include/uapi/linux/tdx-guest.h#L96C8-L96C22
+// https://github.com/intel-innersource/os.linux.cloud.mvp.kernel-dev/blob/mvp-tdx-5.19.17/arch/x86/include/uapi/asm/tdx.h#L106
 struct tdx_quote_req {
         buf:    u64,
         len:    u64,
@@ -153,15 +155,35 @@ fn get_tdx10_quote(device_node: File, report: String)-> String {
         status:     0,
         in_len:     (size_of_val(&qgs_msg)+4) as u32,
         out_len:    0,
+        data_len:   size_of_val(&qgs_msg),
         data:       ptr::addr_of!(qgs_msg) as u64,
     };
 
     let request = tdx_quote_req{
         buf:    ptr::addr_of!(quote_header) as u64,
-        len:    size_of_val(&quote_header) as u64,
+        len:    TDX_QUOTE_LEN as u64,
     };
 
-    ioctl_readwrite!(get_quote10_ioctl, b'T', 2, u64);
+    ioctl_read!(get_quote10_ioctl, b'T', 2, u64);
+
+    //request.len = 0;
+
+    println!("1.0 get quote {:#0x}",request_code_read!(b'T', 0x02, 8) as u32);
+    println!("1.0 get report {:#0x}",request_code_readwrite!(b'T', 0x01, 8) as u32);
+    println!("quote_header.in_len = {}", quote_header.in_len);
+    println!("request.len = {}", request.len);
+    println!("request address: {:p}", &request);
+    println!("header address: {:p}", &quote_header);
+    //let qgs_msg_data = quote_header.data as tdx_quote_hdr;
+
+    let req = unsafe {
+        let raw_ptr = ptr::addr_of!(request) as *mut tdx_quote_req;
+        raw_ptr.as_mut().unwrap() as &mut tdx_quote_req
+    };
+    //let req = &mut * { ptr::addr_of!(request).cast_mut() as *mut tdx_quote_req};
+    println!("req raw ptr = {:#0x?}", req);
+    println!("request raw ptr = {:#0x?}", &request);
+    println!("req.len = {:}", req.len);
 
     let _res = match unsafe { get_quote10_ioctl(device_node.as_raw_fd(), ptr::addr_of!(request) as *mut u64) }{
         Err(e) => panic!("Fail to get quote: {:?}", e),
@@ -183,7 +205,7 @@ fn get_tdx10_quote(device_node: File, report: String)-> String {
 
 fn main() {
     let tdx_report = get_tdx_report("/dev/tdx-guest".to_string(), "1234567812345678123456781234567812345678123456781234567812345678".to_string());
-    println!("Back with report: {}", tdx_report);
+    //println!("Back with report: {}", tdx_report);
 
     let file = match File::options().read(true).write(true).open("/dev/tdx-guest") {
         Err(err) => panic!("couldn't open {}: {:?}", "/dev/tdx-guest", err),
