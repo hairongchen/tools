@@ -81,7 +81,6 @@ pub struct qgs_msg_header{
 
 #[allow(dead_code)]
 #[allow(non_camel_case_types)]
-//#[derive(bytemuck::NoUninit, Clone, Copy)]
 #[repr(C)]
 // https://github.com/intel/SGXDataCenterAttestationPrimitives/blob/master/QuoteGeneration/quote_wrapper/qgs_msg_lib/inc/qgs_msg_lib.h#L81C15-L81C15
 pub struct qgs_msg_get_quote_req{
@@ -184,7 +183,7 @@ fn get_tdx10_quote(device_node: File, report_data: String)-> String {
         in_len:     (size_of_val(&qgs_msg)+4) as u32,
         out_len:    0,
         data_len_be_bytes: (1048 as u32).to_be_bytes(),
-        data:       [0;TDX_QUOTE_LEN as usize], //ptr::addr_of!(qgs_msg) as u64,
+        data:       [0;TDX_QUOTE_LEN as usize],
     };
 
     let qgs_msg_bytes = unsafe {
@@ -198,20 +197,7 @@ fn get_tdx10_quote(device_node: File, report_data: String)-> String {
         len:    TDX_QUOTE_LEN as u64,
     };
 
-    println!("data_len_be_bytes be {:?}", quote_header.data_len_be_bytes);
-    println!("1024 to le {:?}", (1048 as u32).to_le_bytes());
-    println!("1024 to be {:?}", (1048 as u32).to_be_bytes());
-
-    let be_back = unsafe { std::mem::transmute::<[u8; 4], u32>(quote_header.data_len_be_bytes) }.to_be();
-    println!("data_len_be_bytes be {}", be_back);
-
     ioctl_read!(get_quote10_ioctl, b'T', 2, u64);
-
-    println!("1.0 get quote {:#0x}",request_code_read!(b'T', 0x02, 8) as u32);
-    println!("1.0 get report {:#0x}",request_code_readwrite!(b'T', 0x01, 8) as u32);
-    println!("quote_header.in_len = {}", quote_header.in_len);
-    println!("quote_header size = {}", size_of_val(&quote_header));
-    println!("request.len = {}", request.len);
 
     let _res = match unsafe { get_quote10_ioctl(device_node.as_raw_fd(), ptr::addr_of!(request) as *mut u64) }{
         Err(e) => panic!("Fail to get quote: {:?}", e),
@@ -227,9 +213,9 @@ fn get_tdx10_quote(device_node: File, report_data: String)-> String {
 
     let out_len = quote_header.out_len;
     let quote_size = unsafe { std::mem::transmute::<[u8; 4], u32>(quote_header.data_len_be_bytes) }.to_be();
-    let status = quote_header.status;
-    println!("quote size = {}", quote_size);
-    println!("out data len = {}", out_len);
+    //let status = quote_header.status;
+
+    println!("quote size {}",quote_size);
 
     if out_len - quote_size != 4 {
         panic!("TDX get quote: wrong quote size!");
@@ -249,5 +235,6 @@ fn main() {
     };
 
     let tdx_quote = get_tdx10_quote(file, "1234567812345678123456781234567812345678123456781234567812345678".to_string());
-    println!("Back with quote: {}", tdx_quote);
+    println!("Back with quote string of size: {}", tdx_quote.len());
+
 }
