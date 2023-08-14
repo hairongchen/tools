@@ -6,6 +6,7 @@ use std::mem::size_of_val;
 use std::mem;
 use std::path::Path;
 use nix::*;
+use std::convert::TryInto;
 
 const REPORT_DATA_LEN: u32 = 64;
 const TDX_REPORT_LEN: u32 = 1024;
@@ -125,7 +126,7 @@ fn get_tdx_version() -> TdxType {
     }
 }
 
-pub fn get_tdx_report(report_data: String)-> [u8; TDX_REPORT_LEN as usize] {
+pub fn get_tdx_report(report_data: String)-> Vec<u8> {
 
     let tdx_info = match get_tdx_version() {
         TdxType::TDX10 => {
@@ -150,7 +151,7 @@ pub fn get_tdx_report(report_data: String)-> [u8; TDX_REPORT_LEN as usize] {
     }
 }
 
-fn get_tdx10_report(device_node: File, report_data: String)-> [u8; TDX_REPORT_LEN as usize] {
+fn get_tdx10_report(device_node: File, report_data: String)-> Vec<u8> {
 
     let report_data_bytes = report_data.as_bytes();
     let mut report_data_array: [u8; REPORT_DATA_LEN as usize] = [0; REPORT_DATA_LEN as usize];
@@ -172,10 +173,10 @@ fn get_tdx10_report(device_node: File, report_data: String)-> [u8; TDX_REPORT_LE
         Ok(_r) => println!("Get TDX report of size: {}",td_report.len()),
     };
 
-    td_report
+    td_report.to_vec()
 }
 
-fn get_tdx15_report(device_node: File, report_data: String)-> [u8; TDX_REPORT_LEN as usize] {
+fn get_tdx15_report(device_node: File, report_data: String)-> Vec<u8> {
 
     let mut request = tdx15_report_req {
         reportdata: [0;REPORT_DATA_LEN as usize],
@@ -190,7 +191,7 @@ fn get_tdx15_report(device_node: File, report_data: String)-> [u8; TDX_REPORT_LE
         Ok(_r) => println!("Get TDX report of size: {}", request.tdreport.len()),
     };
 
-    request.tdreport
+    request.tdreport.to_vec()
 }
 
 fn generate_qgs_quote_msg(report: [u8; TDX_REPORT_LEN as usize]) -> qgs_msg_get_quote_req{
@@ -216,9 +217,15 @@ fn generate_qgs_quote_msg(report: [u8; TDX_REPORT_LEN as usize]) -> qgs_msg_get_
     qgs_request
 }
 
-pub fn get_tdx_quote(report_data: String)-> String {
+pub fn get_tdx_quote(report_data: String)-> Vec<u8> {
 
-    let qgs_msg = generate_qgs_quote_msg(get_tdx_report(report_data));
+    let report_data_vec = get_tdx_report(report_data);
+    let report_data_array: [u8; TDX_REPORT_LEN as usize] = match report_data_vec.try_into() {
+        Ok(_r) => _r,
+        Err(_) => panic!("Failed to convert TDX report vector into array!"),
+    };
+
+    let qgs_msg = generate_qgs_quote_msg(report_data_array);
 
     let tdx_info = match get_tdx_version() {
         TdxType::TDX10 => {
@@ -302,5 +309,5 @@ pub fn get_tdx_quote(report_data: String)-> String {
 
     println!("Get TDX quote of size: {}", qgs_msg_resp.quote_size);
 
-    format!("{:?}", &qgs_msg_resp.id_quote[0..(qgs_msg_resp.quote_size as usize)])
+    qgs_msg_resp.id_quote[0..(qgs_msg_resp.quote_size as usize)].to_vec()
 }
