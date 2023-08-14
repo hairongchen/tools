@@ -154,9 +154,8 @@ fn get_tdx10_report(device_node: File, report_data: String) -> Vec<u8> {
 
     ioctl_readwrite!(get_report10_ioctl, b'T', 1, u64);
 
-    let _ = match unsafe {
-        get_report10_ioctl(device_node.as_raw_fd(), ptr::addr_of!(request) as *mut u64)
-    } {
+    match unsafe { get_report10_ioctl(device_node.as_raw_fd(), ptr::addr_of!(request) as *mut u64) }
+    {
         Err(e) => panic!("get_tdx10_report: Fail to get report: {:?}", e),
         Ok(_r) => println!("Get TDX report of size: {}", td_report.len()),
     };
@@ -174,7 +173,7 @@ fn get_tdx15_report(device_node: File, report_data: String) -> Vec<u8> {
 
     ioctl_readwrite!(get_report15_ioctl, b'T', 1, tdx15_report_req);
 
-    let _res = match unsafe {
+    match unsafe {
         get_report15_ioctl(
             device_node.as_raw_fd(),
             ptr::addr_of!(request) as *mut tdx15_report_req,
@@ -284,7 +283,7 @@ pub fn get_tdx_quote(report_data: String) -> Vec<u8> {
 
             // error code can be seen from qgsd and can be checked from
             // https://github.com/intel/SGXDataCenterAttestationPrimitives/blob/tdx_1.5_dcap/QuoteGeneration/quote_wrapper/qgs_msg_lib/inc/qgs_msg_lib.h#L50
-            let _res = match unsafe {
+            match unsafe {
                 get_quote15_ioctl(
                     tdx_info.device_node.as_raw_fd(),
                     ptr::addr_of!(request) as *mut tdx_quote_req,
