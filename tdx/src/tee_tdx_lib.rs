@@ -11,19 +11,19 @@ const REPORT_DATA_LEN: u32 = 64;
 const TDX_REPORT_LEN: u32 = 1024;
 const TDX_QUOTE_LEN: usize = 4 * 4096;
 
-// pub struct TdxInfo {
-//     tdx_version: TdxType,
-//     device_node: File,
-// }
+pub struct TdxInfo {
+    tdx_version: TdxType,
+    device_node: File,
+}
 
-// impl TdxInfo {
-//     fn new(_tdx_version: TeeType, _device_node: File) -> Self {
-//         TdxInfo {
-//             tdx_version: _tdx_version,
-//             device_node: device_node,
-//         }
-//     }
-// }
+impl TdxInfo {
+    fn new(_tdx_version: TdxType, _device_node: File) -> Self {
+        TdxInfo {
+            tdx_version: _tdx_version,
+            device_node: _device_node,
+        }
+    }
+}
 
 #[allow(dead_code)]
 #[allow(non_camel_case_types)]
@@ -127,21 +127,26 @@ fn get_tdx_version() -> TdxType {
 
 pub fn get_tdx_report(report_data: String)-> [u8; TDX_REPORT_LEN as usize] {
 
-    match get_tdx_version() {
+    let tdx_info = match get_tdx_version() {
         TdxType::TDX10 => {
             let device_node = match File::options().read(true).write(true).open("/dev/tdx-guest") {
                 Err(err) => panic!("couldn't open {}: {:?}", "/dev/tdx-guest", err),
                 Ok(fd) => fd,
             };
-            get_tdx10_report(device_node, report_data)
+            TdxInfo::new(TdxType::TDX10, device_node)
         },
         TdxType::TDX15 => {
             let device_node = match File::options().read(true).write(true).open("/dev/tdx_guest") {
                 Err(err) => panic!("couldn't open {}: {:?}", "/dev/tdx_guest", err),
                 Ok(fd) => fd,
             };
-            get_tdx15_report(device_node, report_data)
+            TdxInfo::new(TdxType::TDX15, device_node)
         },
+    };
+
+    match tdx_info.tdx_version {
+        TdxType::TDX10 => get_tdx10_report(tdx_info.device_node, report_data),
+        TdxType::TDX15 => get_tdx15_report(tdx_info.device_node, report_data),
     }
 }
 
@@ -215,18 +220,20 @@ pub fn get_tdx_quote(report_data: String)-> String {
 
     let qgs_msg = generate_qgs_quote_msg(get_tdx_report(report_data));
 
-    let device_node = match get_tdx_version() {
+    let tdx_info = match get_tdx_version() {
         TdxType::TDX10 => {
-            match File::options().read(true).write(true).open("/dev/tdx-guest") {
+            let device_node = match File::options().read(true).write(true).open("/dev/tdx-guest") {
                 Err(err) => panic!("couldn't open {}: {:?}", "/dev/tdx-guest", err),
                 Ok(fd) => fd,
-            }
+            };
+            TdxInfo::new(TdxType::TDX10, device_node)
         },
         TdxType::TDX15 => {
-            match File::options().read(true).write(true).open("/dev/tdx_guest") {
+            let device_node = match File::options().read(true).write(true).open("/dev/tdx_guest") {
                 Err(err) => panic!("couldn't open {}: {:?}", "/dev/tdx_guest", err),
                 Ok(fd) => fd,
-            }
+            };
+            TdxInfo::new(TdxType::TDX15, device_node)
         },
     };
 
@@ -250,12 +257,12 @@ pub fn get_tdx_quote(report_data: String)-> String {
         len:    TDX_QUOTE_LEN as u64,
     };
 
-    match get_tdx_version() {
+    match tdx_info.tdx_version {
         TdxType::TDX10 => {
             ioctl_read!(get_quote10_ioctl, b'T', 2, u64);
             // error code can be seen from qgsd and can be checked from
             // https://github.com/intel/SGXDataCenterAttestationPrimitives/blob/e7604e02331b3377f3766ed3653250e03af72d45/QuoteGeneration/quote_wrapper/tdx_quote/inc/td_ql_wrapper.h#L46
-            let _res = match unsafe { get_quote10_ioctl(device_node.as_raw_fd(), ptr::addr_of!(request) as *mut u64) }{
+            let _res = match unsafe { get_quote10_ioctl(tdx_info.device_node.as_raw_fd(), ptr::addr_of!(request) as *mut u64) }{
                 Err(e) => panic!("Fail to get quote: {:?}", e),
                 Ok(_r) => _r,
             };            
@@ -265,7 +272,7 @@ pub fn get_tdx_quote(report_data: String)-> String {
 
             // error code can be seen from qgsd and can be checked from
             // https://github.com/intel/SGXDataCenterAttestationPrimitives/blob/tdx_1.5_dcap/QuoteGeneration/quote_wrapper/qgs_msg_lib/inc/qgs_msg_lib.h#L50
-            let _res = match unsafe { get_quote15_ioctl(device_node.as_raw_fd(), ptr::addr_of!(request) as *mut tdx_quote_req) }{
+            let _res = match unsafe { get_quote15_ioctl(tdx_info.device_node.as_raw_fd(), ptr::addr_of!(request) as *mut tdx_quote_req) }{
                 Err(e) => panic!("Fail to get quote: {:?}", e),
                 Ok(_r) => _r,
             };
