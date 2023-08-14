@@ -24,6 +24,64 @@ pub struct tdx_report_req {
     tdr_len:            u32,
 }
 
+#[allow(dead_code)]
+#[allow(non_camel_case_types)]
+#[repr(C)]
+// https://github.com/intel/SGXDataCenterAttestationPrimitives/blob/master/QuoteGeneration/quote_wrapper/qgs_msg_lib/inc/qgs_msg_lib.h#L73C16-L73C34
+#[derive(Debug)]
+pub struct qgs_msg_header{
+    major_version:      u16,
+    minor_version:      u16,
+    msg_type:           u32,
+    size:               u32,    // size of the whole message, include this header, in byte
+    error_code:         u32,    // used in response only
+}
+
+#[allow(dead_code)]
+#[allow(non_camel_case_types)]
+#[repr(C)]
+// https://github.com/intel/SGXDataCenterAttestationPrimitives/blob/master/QuoteGeneration/quote_wrapper/qgs_msg_lib/inc/qgs_msg_lib.h#L81C15-L81C15
+pub struct qgs_msg_get_quote_req{
+    header:                 qgs_msg_header,                 // header.type = GET_QUOTE_REQ
+    report_size:            u32,                            // cannot be 0
+    id_list_size:           u32,                            // length of id_list, in byte, can be 0
+    report_id_list:         [u8;TDX_REPORT_LEN as usize],   // report followed by id list
+}
+
+#[allow(dead_code)]
+#[allow(non_camel_case_types)]
+#[repr(C)]
+// https://github.com/intel-innersource/os.linux.cloud.mvp.kernel-dev/blob/mvp-tdx-5.19.17/arch/x86/include/uapi/asm/tdx.h#L86
+pub struct tdx_quote_hdr {
+    version:                u64,                            // Quote version, filled by TD
+    status:                 u64,                            // Status code of Quote request, filled by VMM
+    in_len:                 u32,                            // Length of TDREPORT, filled by TD
+    out_len:                u32,                            // Length of Quote, filled by VMM
+    data_len_be_bytes:      [u8; 4],                        // big-endian 4 bytes indicate the size of data following
+    data:                   [u8;TDX_QUOTE_LEN as usize],    // Actual Quote data or TDREPORT on input
+}
+
+#[allow(dead_code)]
+#[allow(non_camel_case_types)]
+#[derive(Debug)]
+#[repr(C)]
+// https://github.com/intel-innersource/os.linux.cloud.mvp.kernel-dev/blob/mvp-tdx-5.19.17/arch/x86/include/uapi/asm/tdx.h#L106
+struct tdx_quote_req {
+    buf:    u64,
+    len:    u64,
+}
+
+#[allow(dead_code)]
+#[allow(non_camel_case_types)]
+#[repr(C)]
+// https://github.com/intel/SGXDataCenterAttestationPrimitives/blob/master/QuoteGeneration/quote_wrapper/qgs_msg_lib/inc/qgs_msg_lib.h#L88C9-L93C2
+pub struct qgs_msg_get_quote_resp {
+    header:             qgs_msg_header,         // header.type = GET_QUOTE_RESP
+    selected_id_size:   u32,                    // can be 0 in case only one id is sent in request
+    quote_size:         u32,                    // length of quote_data, in byte
+    id_quote:           [u8;TDX_QUOTE_LEN],     // selected id followed by quote
+}
+
 impl std::fmt::Display for tdx_report_req {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "(subtype: {}, reportdata: {:#0x}, rpd_len: {}, tdreport: {:#0x}, tdr_len: {})", self.subtype, self.reportdata, self.rpd_len, self.tdreport, self.tdr_len)
@@ -66,31 +124,6 @@ fn get_tdx_report(device: String, report_data: String) -> String {
     get_tdx10_report(file, report_data)
 }
 
-
-#[allow(dead_code)]
-#[allow(non_camel_case_types)]
-#[repr(C)]
-// https://github.com/intel/SGXDataCenterAttestationPrimitives/blob/master/QuoteGeneration/quote_wrapper/qgs_msg_lib/inc/qgs_msg_lib.h#L73C16-L73C34
-#[derive(Debug)]
-pub struct qgs_msg_header{
-    major_version:      u16,
-    minor_version:      u16,
-    msg_type:           u32,
-    size:               u32,    // size of the whole message, include this header, in byte
-    error_code:         u32,    // used in response only
-}
-
-#[allow(dead_code)]
-#[allow(non_camel_case_types)]
-#[repr(C)]
-// https://github.com/intel/SGXDataCenterAttestationPrimitives/blob/master/QuoteGeneration/quote_wrapper/qgs_msg_lib/inc/qgs_msg_lib.h#L81C15-L81C15
-pub struct qgs_msg_get_quote_req{
-    header:                 qgs_msg_header,                 // header.type = GET_QUOTE_REQ
-    report_size:            u32,                            // cannot be 0
-    id_list_size:           u32,                            // length of id_list, in byte, can be 0
-    report_id_list:         [u8;TDX_REPORT_LEN as usize],   // report followed by id list
-}
-
 fn generate_qgs_quote_msg(report: [u8; TDX_REPORT_LEN as usize]) -> qgs_msg_get_quote_req{
 
     let qgs_header = qgs_msg_header{
@@ -115,40 +148,6 @@ fn generate_qgs_quote_msg(report: [u8; TDX_REPORT_LEN as usize]) -> qgs_msg_get_
     qgs_request.report_id_list[0..((TDX_REPORT_LEN as usize) -1)].copy_from_slice(&td_report[0..((TDX_REPORT_LEN as usize) -1)]);
 
     return qgs_request;
-}
-
-#[allow(dead_code)]
-#[allow(non_camel_case_types)]
-#[repr(C)]
-// https://github.com/intel-innersource/os.linux.cloud.mvp.kernel-dev/blob/mvp-tdx-5.19.17/arch/x86/include/uapi/asm/tdx.h#L86
-pub struct tdx_quote_hdr {
-    version:                u64,                            // Quote version, filled by TD
-    status:                 u64,                            // Status code of Quote request, filled by VMM
-    in_len:                 u32,                            // Length of TDREPORT, filled by TD
-    out_len:                u32,                            // Length of Quote, filled by VMM
-    data_len_be_bytes:      [u8; 4],                        // big-endian 4 bytes indicate the size of data following
-    data:                   [u8;TDX_QUOTE_LEN as usize],    // Actual Quote data or TDREPORT on input
-}
-
-#[allow(dead_code)]
-#[allow(non_camel_case_types)]
-#[derive(Debug)]
-#[repr(C)]
-// https://github.com/intel-innersource/os.linux.cloud.mvp.kernel-dev/blob/mvp-tdx-5.19.17/arch/x86/include/uapi/asm/tdx.h#L106
-struct tdx_quote_req {
-    buf:    u64,
-    len:    u64,
-}
-
-#[allow(dead_code)]
-#[allow(non_camel_case_types)]
-#[repr(C)]
-// https://github.com/intel/SGXDataCenterAttestationPrimitives/blob/master/QuoteGeneration/quote_wrapper/qgs_msg_lib/inc/qgs_msg_lib.h#L88C9-L93C2
-pub struct qgs_msg_get_quote_resp {
-    header:             qgs_msg_header,         // header.type = GET_QUOTE_RESP
-    selected_id_size:   u32,                    // can be 0 in case only one id is sent in request
-    quote_size:         u32,                    // length of quote_data, in byte
-    id_quote:           [u8;TDX_QUOTE_LEN],     // selected id followed by quote
 }
 
 fn get_tdx10_quote(device_node: File, report_data: String)-> String {
