@@ -200,6 +200,8 @@ fn get_tdx10_quote(device_node: File, report_data: String)-> String {
 
     ioctl_read!(get_quote10_ioctl, b'T', 2, u64);
 
+    // error code can be seen from qgsd and can be checked from
+    // https://github.com/intel/SGXDataCenterAttestationPrimitives/blob/e7604e02331b3377f3766ed3653250e03af72d45/QuoteGeneration/quote_wrapper/tdx_quote/inc/td_ql_wrapper.h
     let _res = match unsafe { get_quote10_ioctl(device_node.as_raw_fd(), ptr::addr_of!(request) as *mut u64) }{
         Err(e) => panic!("Fail to get quote: {:?}", e),
         Ok(_r) => println!("successfully get TDX quote"),

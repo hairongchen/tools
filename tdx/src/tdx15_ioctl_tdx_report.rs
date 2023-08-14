@@ -44,6 +44,7 @@ fn get_tdx_report(device: String, report_data: String) -> String {
 
 fn main() {
     let tdx_report = get_tdx_report("/dev/tdx_guest".to_string(), "1234567812345678123456781234567812345678123456781234567812345678".to_string());
-    println!("Back with result: {}", tdx_report);
+    println!("Back with report string of size: {}", tdx_report.len());
+
 
 }
