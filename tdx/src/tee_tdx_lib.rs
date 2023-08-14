@@ -8,7 +8,6 @@ use std::ptr;
 use std::result::Result::Ok;
 
 #[repr(C)]
-// For TDX 1.0
 pub struct tdx10_report_req {
     subtype: u8,
     reportdata: u64,
@@ -18,7 +17,6 @@ pub struct tdx10_report_req {
 }
 
 #[repr(C)]
-// For TDX 1.5
 pub struct tdx15_report_req {
     reportdata: [u8; REPORT_DATA_LEN as usize],
     tdreport: [u8; TDX_REPORT_LEN as usize],
@@ -26,7 +24,6 @@ pub struct tdx15_report_req {
 
 #[repr(C)]
 // https://github.com/intel/SGXDataCenterAttestationPrimitives/blob/master/QuoteGeneration/quote_wrapper/qgs_msg_lib/inc/qgs_msg_lib.h#L73C16-L73C34
-#[derive(Debug)]
 pub struct qgs_msg_header {
     major_version: u16,
     minor_version: u16,
@@ -54,7 +51,6 @@ pub struct tdx_quote_hdr {
     data: [u8; TDX_QUOTE_LEN as usize], // Actual Quote data or TDREPORT on input
 }
 
-#[derive(Debug)]
 #[repr(C)]
 pub struct tdx_quote_req {
     buf: u64,
