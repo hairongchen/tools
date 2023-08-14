@@ -262,7 +262,7 @@ pub fn get_tdx_quote(report_data: String) -> Vec<u8> {
     match tdx_info.tdx_version {
         TdxType::TDX10 => {
             ioctl_read!(get_quote10_ioctl, b'T', 2, u64);
-            // error code can be seen from qgsd and can be checked from
+            // error code can be seen in logs of qgsd and can be checked against
             // https://github.com/intel/SGXDataCenterAttestationPrimitives/blob/e7604e02331b3377f3766ed3653250e03af72d45/QuoteGeneration/quote_wrapper/tdx_quote/inc/td_ql_wrapper.h#L46
             let _res = match unsafe {
                 get_quote10_ioctl(
@@ -277,7 +277,7 @@ pub fn get_tdx_quote(report_data: String) -> Vec<u8> {
         TdxType::TDX15 => {
             ioctl_read!(get_quote15_ioctl, b'T', 4, tdx_quote_req);
 
-            // error code can be seen from qgsd and can be checked from
+            // error code can be seen in logs of qgsd and can be checked against
             // https://github.com/intel/SGXDataCenterAttestationPrimitives/blob/tdx_1.5_dcap/QuoteGeneration/quote_wrapper/qgs_msg_lib/inc/qgs_msg_lib.h#L50
             match unsafe {
                 get_quote15_ioctl(
