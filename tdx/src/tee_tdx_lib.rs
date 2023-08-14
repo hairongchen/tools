@@ -8,24 +8,6 @@ use std::path::Path;
 use nix::*;
 use std::convert::TryInto;
 
-const REPORT_DATA_LEN: u32 = 64;
-const TDX_REPORT_LEN: u32 = 1024;
-const TDX_QUOTE_LEN: usize = 4 * 4096;
-
-pub struct TdxInfo {
-    tdx_version: TdxType,
-    device_node: File,
-}
-
-impl TdxInfo {
-    fn new(_tdx_version: TdxType, _device_node: File) -> Self {
-        TdxInfo {
-            tdx_version: _tdx_version,
-            device_node: _device_node,
-        }
-    }
-}
-
 #[allow(dead_code)]
 #[allow(non_camel_case_types)]
 #[repr(C)]
@@ -107,10 +89,29 @@ pub struct qgs_msg_get_quote_resp {
     id_quote:           [u8;TDX_QUOTE_LEN],     // selected id followed by quote
 }
 
+
 #[derive(Debug, Clone)]
 pub enum TdxType {
     TDX10,
     TDX15,
+}
+
+const REPORT_DATA_LEN: u32 = 64;
+const TDX_REPORT_LEN: u32 = 1024;
+const TDX_QUOTE_LEN: usize = 4 * 4096;
+
+pub struct TdxInfo {
+    tdx_version: TdxType,
+    device_node: File,
+}
+
+impl TdxInfo {
+    fn new(_tdx_version: TdxType, _device_node: File) -> Self {
+        TdxInfo {
+            tdx_version: _tdx_version,
+            device_node: _device_node,
+        }
+    }
 }
 
 fn get_tdx_version() -> TdxType {
