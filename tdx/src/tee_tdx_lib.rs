@@ -8,8 +8,6 @@ use std::path::Path;
 use nix::*;
 use std::convert::TryInto;
 
-#[allow(dead_code)]
-#[allow(non_camel_case_types)]
 #[repr(C)]
 // For TDX 1.0
 // https://github.com/intel-innersource/os.linux.cloud.mvp.kernel-dev/blob/mvp-tdx-5.19.17/arch/x86/include/uapi/asm/tdx.h#L37
@@ -21,8 +19,6 @@ pub struct tdx10_report_req {
     tdr_len:            u32,
 }
 
-#[allow(dead_code)]
-#[allow(non_camel_case_types)]
 #[repr(C)]
 // For TDX 1.5
 // https://github.com/intel-innersource/os.linux.cloud.mvp.kernel-dev/blob/css-tdx-mvp-kernel-6.2/include/uapi/linux/tdx-guest.h#L40
@@ -31,8 +27,6 @@ pub struct tdx15_report_req {
     tdreport:           [u8; TDX_REPORT_LEN as usize],
 }
 
-#[allow(dead_code)]
-#[allow(non_camel_case_types)]
 #[repr(C)]
 // https://github.com/intel/SGXDataCenterAttestationPrimitives/blob/master/QuoteGeneration/quote_wrapper/qgs_msg_lib/inc/qgs_msg_lib.h#L73C16-L73C34
 #[derive(Debug)]
@@ -44,8 +38,6 @@ pub struct qgs_msg_header{
     error_code:         u32,    // used in response only
 }
 
-#[allow(dead_code)]
-#[allow(non_camel_case_types)]
 #[repr(C)]
 // https://github.com/intel/SGXDataCenterAttestationPrimitives/blob/master/QuoteGeneration/quote_wrapper/qgs_msg_lib/inc/qgs_msg_lib.h#L81C15-L81C15
 pub struct qgs_msg_get_quote_req{
@@ -55,8 +47,6 @@ pub struct qgs_msg_get_quote_req{
     report_id_list:         [u8;TDX_REPORT_LEN as usize],   // report followed by id list
 }
 
-#[allow(dead_code)]
-#[allow(non_camel_case_types)]
 #[repr(C)]
 // https://github.com/intel-innersource/os.linux.cloud.mvp.kernel-dev/blob/mvp-tdx-5.19.17/arch/x86/include/uapi/asm/tdx.h#L86
 pub struct tdx_quote_hdr {
@@ -68,8 +58,6 @@ pub struct tdx_quote_hdr {
     data:                   [u8;TDX_QUOTE_LEN as usize],    // Actual Quote data or TDREPORT on input
 }
 
-#[allow(dead_code)]
-#[allow(non_camel_case_types)]
 #[derive(Debug)]
 #[repr(C)]
 // https://github.com/intel-innersource/os.linux.cloud.mvp.kernel-dev/blob/mvp-tdx-5.19.17/arch/x86/include/uapi/asm/tdx.h#L106
@@ -78,8 +66,6 @@ pub struct tdx_quote_req {
     len:    u64,
 }
 
-#[allow(dead_code)]
-#[allow(non_camel_case_types)]
 #[repr(C)]
 // https://github.com/intel/SGXDataCenterAttestationPrimitives/blob/master/QuoteGeneration/quote_wrapper/qgs_msg_lib/inc/qgs_msg_lib.h#L88C9-L93C2
 pub struct qgs_msg_get_quote_resp {
@@ -89,8 +75,6 @@ pub struct qgs_msg_get_quote_resp {
     id_quote:           [u8;TDX_QUOTE_LEN],     // selected id followed by quote
 }
 
-
-#[derive(Debug, Clone)]
 pub enum TdxType {
     TDX10,
     TDX15,
