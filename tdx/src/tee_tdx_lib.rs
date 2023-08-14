@@ -2,7 +2,6 @@ use nix::*;
 use std::convert::TryInto;
 use std::fs::File;
 use std::mem;
-use std::mem::size_of_val;
 use std::os::unix::io::AsRawFd;
 use std::path::Path;
 use std::ptr;
@@ -251,7 +250,7 @@ pub fn get_tdx_quote(report_data: String) -> Vec<u8> {
     let mut quote_header = tdx_quote_hdr {
         version: 1,
         status: 0,
-        in_len: (size_of_val(&qgs_msg) + 4) as u32,
+        in_len: (mem::size_of_val(&qgs_msg) + 4) as u32,
         out_len: 0,
         data_len_be_bytes: (1048 as u32).to_be_bytes(),
         data: [0; TDX_QUOTE_LEN as usize],
