@@ -10,7 +10,6 @@ use std::convert::TryInto;
 
 #[repr(C)]
 // For TDX 1.0
-// https://github.com/intel-innersource/os.linux.cloud.mvp.kernel-dev/blob/mvp-tdx-5.19.17/arch/x86/include/uapi/asm/tdx.h#L37
 pub struct tdx10_report_req {
     subtype:            u8,
     reportdata:         u64,
@@ -21,7 +20,6 @@ pub struct tdx10_report_req {
 
 #[repr(C)]
 // For TDX 1.5
-// https://github.com/intel-innersource/os.linux.cloud.mvp.kernel-dev/blob/css-tdx-mvp-kernel-6.2/include/uapi/linux/tdx-guest.h#L40
 pub struct tdx15_report_req {
     reportdata:         [u8; REPORT_DATA_LEN as usize],
     tdreport:           [u8; TDX_REPORT_LEN as usize],
@@ -48,7 +46,6 @@ pub struct qgs_msg_get_quote_req{
 }
 
 #[repr(C)]
-// https://github.com/intel-innersource/os.linux.cloud.mvp.kernel-dev/blob/mvp-tdx-5.19.17/arch/x86/include/uapi/asm/tdx.h#L86
 pub struct tdx_quote_hdr {
     version:                u64,                            // Quote version, filled by TD
     status:                 u64,                            // Status code of Quote request, filled by VMM
@@ -60,7 +57,6 @@ pub struct tdx_quote_hdr {
 
 #[derive(Debug)]
 #[repr(C)]
-// https://github.com/intel-innersource/os.linux.cloud.mvp.kernel-dev/blob/mvp-tdx-5.19.17/arch/x86/include/uapi/asm/tdx.h#L106
 pub struct tdx_quote_req {
     buf:    u64,
     len:    u64,
