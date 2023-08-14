@@ -315,7 +315,7 @@ pub fn get_tdx_quote(report_data: String) -> Vec<u8> {
     }
 
     if major_version != 1 || minor_version != 0 || msg_type != 1 || error_code != 0 {
-        panic!("TDX get quote: quote response error!");
+        panic!("TDX get quote: get quote response error!");
     }
 
     println!("Get TDX quote of size: {}", qgs_msg_resp.quote_size);
