@@ -75,7 +75,7 @@ fn get_tdx_report(device: String, report_data: String) -> String {
 pub struct qgs_msg_header{
     major_version:      u16,
     minor_version:      u16,
-    msg_type:               u32,
+    msg_type:           u32,
     size:               u32,    // size of the whole message, include this header, in byte
     error_code:         u32,    // used in response only
 }
@@ -85,10 +85,10 @@ pub struct qgs_msg_header{
 #[repr(C)]
 // https://github.com/intel/SGXDataCenterAttestationPrimitives/blob/master/QuoteGeneration/quote_wrapper/qgs_msg_lib/inc/qgs_msg_lib.h#L81C15-L81C15
 pub struct qgs_msg_get_quote_req{
-    header:                 qgs_msg_header,         // header.type = GET_QUOTE_REQ
-    report_size:            u32,                    // cannot be 0
-    id_list_size:           u32,                    // length of id_list, in byte, can be 0
-    report_id_list:         [u8;TDX_REPORT_LEN as usize],    // report followed by id list
+    header:                 qgs_msg_header,                 // header.type = GET_QUOTE_REQ
+    report_size:            u32,                            // cannot be 0
+    id_list_size:           u32,                            // length of id_list, in byte, can be 0
+    report_id_list:         [u8;TDX_REPORT_LEN as usize],   // report followed by id list
 }
 
 fn generate_qgs_quote_msg(report: [u8; TDX_REPORT_LEN as usize]) -> qgs_msg_get_quote_req{
@@ -96,7 +96,7 @@ fn generate_qgs_quote_msg(report: [u8; TDX_REPORT_LEN as usize]) -> qgs_msg_get_
     let qgs_header = qgs_msg_header{
         major_version:      1,
         minor_version:      0,
-        msg_type:               0,
+        msg_type:           0,
         size:               16+8+TDX_REPORT_LEN,   // header + report_size and id_list_size + TDX_REPORT_LEN
         error_code:         0,
     };
@@ -109,7 +109,6 @@ fn generate_qgs_quote_msg(report: [u8; TDX_REPORT_LEN as usize]) -> qgs_msg_get_
         report_id_list:         [0;TDX_REPORT_LEN as usize],
     };
 
-    //let td_report = report.as_bytes();
     let td_report = report;
     println!("td_report size {}", td_report.len());
 
@@ -123,12 +122,12 @@ fn generate_qgs_quote_msg(report: [u8; TDX_REPORT_LEN as usize]) -> qgs_msg_get_
 #[repr(C)]
 // https://github.com/intel-innersource/os.linux.cloud.mvp.kernel-dev/blob/mvp-tdx-5.19.17/arch/x86/include/uapi/asm/tdx.h#L86
 pub struct tdx_quote_hdr {
-    version:    u64,            // Quote version, filled by TD
-    status:     u64,            // Status code of Quote request, filled by VMM
-    in_len:     u32,            // Length of TDREPORT, filled by TD
-    out_len:    u32,            // Length of Quote, filled by VMM
-    data_len_be_bytes: [u8; 4],
-    data:       [u8;TDX_QUOTE_LEN as usize],            // Actual Quote data or TDREPORT on input
+    version:                u64,                            // Quote version, filled by TD
+    status:                 u64,                            // Status code of Quote request, filled by VMM
+    in_len:                 u32,                            // Length of TDREPORT, filled by TD
+    out_len:                u32,                            // Length of Quote, filled by VMM
+    data_len_be_bytes:      [u8; 4],                        // big-endian 4 bytes indicate the size of data following
+    data:                   [u8;TDX_QUOTE_LEN as usize],    // Actual Quote data or TDREPORT on input
 }
 
 #[allow(dead_code)]
@@ -137,8 +136,8 @@ pub struct tdx_quote_hdr {
 #[repr(C)]
 // https://github.com/intel-innersource/os.linux.cloud.mvp.kernel-dev/blob/mvp-tdx-5.19.17/arch/x86/include/uapi/asm/tdx.h#L106
 struct tdx_quote_req {
-        buf:    u64,
-        len:    u64,
+    buf:    u64,
+    len:    u64,
 }
 
 #[allow(dead_code)]
@@ -146,10 +145,10 @@ struct tdx_quote_req {
 #[repr(C)]
 // https://github.com/intel/SGXDataCenterAttestationPrimitives/blob/master/QuoteGeneration/quote_wrapper/qgs_msg_lib/inc/qgs_msg_lib.h#L88C9-L93C2
 pub struct qgs_msg_get_quote_resp {
-    header:    qgs_msg_header,      // header.type = GET_QUOTE_RESP
-    selected_id_size: u32,          // can be 0 in case only one id is sent in request
-    quote_size: u32,                // length of quote_data, in byte
-    id_quote: [u8;TDX_QUOTE_LEN],   // selected id followed by quote
+    header:             qgs_msg_header,         // header.type = GET_QUOTE_RESP
+    selected_id_size:   u32,                    // can be 0 in case only one id is sent in request
+    quote_size:         u32,                    // length of quote_data, in byte
+    id_quote:           [u8;TDX_QUOTE_LEN],     // selected id followed by quote
 }
 
 fn get_tdx10_quote(device_node: File, report_data: String)-> String {
@@ -201,7 +200,7 @@ fn get_tdx10_quote(device_node: File, report_data: String)-> String {
     ioctl_read!(get_quote10_ioctl, b'T', 2, u64);
 
     // error code can be seen from qgsd and can be checked from
-    // https://github.com/intel/SGXDataCenterAttestationPrimitives/blob/e7604e02331b3377f3766ed3653250e03af72d45/QuoteGeneration/quote_wrapper/tdx_quote/inc/td_ql_wrapper.h
+    // https://github.com/intel/SGXDataCenterAttestationPrimitives/blob/e7604e02331b3377f3766ed3653250e03af72d45/QuoteGeneration/quote_wrapper/tdx_quote/inc/td_ql_wrapper.h#L46
     let _res = match unsafe { get_quote10_ioctl(device_node.as_raw_fd(), ptr::addr_of!(request) as *mut u64) }{
         Err(e) => panic!("Fail to get quote: {:?}", e),
         Ok(_r) => println!("successfully get TDX quote"),
