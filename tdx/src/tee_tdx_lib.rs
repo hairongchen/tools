@@ -292,16 +292,15 @@ pub fn get_tdx_quote(report_data: String) -> Vec<u8> {
         raw_ptr.as_mut().unwrap() as &mut qgs_msg_get_quote_resp
     };
 
-    let major_version = qgs_msg_resp.header.major_version;
-    let minor_version = qgs_msg_resp.header.minor_version;
-    let msg_type = qgs_msg_resp.header.msg_type;
-    let error_code = qgs_msg_resp.header.error_code;
-
     if out_len - qgs_msg_resp_size != 4 {
         panic!("TDX get quote: wrong quote size!");
     }
 
-    if major_version != 1 || minor_version != 0 || msg_type != 1 || error_code != 0 {
+    if qgs_msg_resp.header.major_version != 1
+        || qgs_msg_resp.header.minor_version != 0
+        || qgs_msg_resp.header.msg_type != 1
+        || qgs_msg_resp.header.error_code != 0
+    {
         panic!("TDX get quote: get quote response error!");
     }
 
