@@ -23,7 +23,6 @@ pub struct tdx15_report_req {
 }
 
 #[repr(C)]
-// https://github.com/intel/SGXDataCenterAttestationPrimitives/blob/master/QuoteGeneration/quote_wrapper/qgs_msg_lib/inc/qgs_msg_lib.h#L73C16-L73C34
 pub struct qgs_msg_header {
     major_version: u16,
     minor_version: u16,
@@ -33,7 +32,6 @@ pub struct qgs_msg_header {
 }
 
 #[repr(C)]
-// https://github.com/intel/SGXDataCenterAttestationPrimitives/blob/master/QuoteGeneration/quote_wrapper/qgs_msg_lib/inc/qgs_msg_lib.h#L81C15-L81C15
 pub struct qgs_msg_get_quote_req {
     header: qgs_msg_header,                        // header.type = GET_QUOTE_REQ
     report_size: u32,                              // cannot be 0
@@ -58,7 +56,6 @@ pub struct tdx_quote_req {
 }
 
 #[repr(C)]
-// https://github.com/intel/SGXDataCenterAttestationPrimitives/blob/master/QuoteGeneration/quote_wrapper/qgs_msg_lib/inc/qgs_msg_lib.h#L88C9-L93C2
 pub struct qgs_msg_get_quote_resp {
     header: qgs_msg_header,        // header.type = GET_QUOTE_RESP
     selected_id_size: u32,         // can be 0 in case only one id is sent in request
@@ -262,8 +259,6 @@ pub fn get_tdx_quote(report_data: String) -> Vec<u8> {
     match tdx_info.tdx_version {
         TdxType::TDX10 => {
             ioctl_read!(get_quote10_ioctl, b'T', 2, u64);
-            // error code can be seen in logs of qgsd and can be checked against
-            // https://github.com/intel/SGXDataCenterAttestationPrimitives/blob/e7604e02331b3377f3766ed3653250e03af72d45/QuoteGeneration/quote_wrapper/tdx_quote/inc/td_ql_wrapper.h#L46
             let _res = match unsafe {
                 get_quote10_ioctl(
                     tdx_info.device_node.as_raw_fd(),
@@ -276,9 +271,6 @@ pub fn get_tdx_quote(report_data: String) -> Vec<u8> {
         }
         TdxType::TDX15 => {
             ioctl_read!(get_quote15_ioctl, b'T', 4, tdx_quote_req);
-
-            // error code can be seen in logs of qgsd and can be checked against
-            // https://github.com/intel/SGXDataCenterAttestationPrimitives/blob/tdx_1.5_dcap/QuoteGeneration/quote_wrapper/qgs_msg_lib/inc/qgs_msg_lib.h#L50
             match unsafe {
                 get_quote15_ioctl(
                     tdx_info.device_node.as_raw_fd(),
