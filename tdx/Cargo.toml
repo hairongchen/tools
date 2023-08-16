@@ -7,3 +7,5 @@ edition = "2021"
 
 [dependencies]
 nix = "0.26.2"
+base64 = "0.13.0"
+anyhow = "1.0"
