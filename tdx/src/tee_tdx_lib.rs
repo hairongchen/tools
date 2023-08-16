@@ -163,7 +163,7 @@ fn get_tdx10_report(device_node: File, report_data: String) -> Result<Vec<u8>, a
     match unsafe { get_report10_ioctl(device_node.as_raw_fd(), ptr::addr_of!(request) as *mut u64) }
     {
         Err(e) => return Err(anyhow!("[get_tdx10_report] Fail to get TDX report: {:?}", e)),
-        Ok(_) => println!("Get TDX report of size: {}", td_report.len()),
+        Ok(_) => println!("[get_tdx_report] Get TDX report of size: {}", td_report.len()),
     };
 
     Ok(td_report.to_vec())
@@ -189,7 +189,7 @@ fn get_tdx15_report(device_node: File, report_data: String) -> Result<Vec<u8>, a
         )
     } {
         Err(e) => return Err(anyhow!("[get_tdx15_report] Fail to get TDX report: {:?}", e)),
-        Ok(_) => println!("Get TDX report of size: {}", request.tdreport.len()),
+        Ok(_) => println!("[get_tdx_report] Get TDX report of size: {}", request.tdreport.len()),
     };
 
     Ok(request.tdreport.to_vec())
@@ -330,7 +330,7 @@ pub fn get_tdx_quote(report_data: String) -> Result<Vec<u8>, anyhow::Error> {
         return Err(anyhow!("[get_tdx_quote] Fail to get TDX quote: QGS response error!"));
     }
 
-    println!("Get TDX quote of size: {}", qgs_msg_resp.quote_size);
+    println!("[get_tdx_quote] Get TDX quote of size: {}", qgs_msg_resp.quote_size);
 
     Ok(qgs_msg_resp.id_quote[0..(qgs_msg_resp.quote_size as usize)].to_vec())
 }
