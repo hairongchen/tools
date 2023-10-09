@@ -1,0 +1,14 @@
+[package]
+name = "quote-test"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]] # Bin to run the quote server
+name = "quote-test"
+path = "src/quote-test.rs"
+
+[dependencies]
+nix = "0.26.2"
+tdx_attest = "0.1.0"
+base64 = "0.13.0"
+
